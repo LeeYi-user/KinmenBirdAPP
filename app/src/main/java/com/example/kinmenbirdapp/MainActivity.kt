@@ -42,8 +42,8 @@ class MainActivity : AppCompatActivity() {
             data?.data?.let { uri ->
                 val bitmap = uriToBitmap(uri)
                 imageView.setImageBitmap(bitmap)
-                val resultIndex = classifier.classify(bitmap)
-                textViewResult.text = "預測結果 index: $resultIndex"
+                val resultName = classifier.classify(bitmap)
+                textViewResult.text = "預測結果：$resultName"
             }
         }
     }
