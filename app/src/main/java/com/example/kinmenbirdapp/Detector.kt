@@ -88,7 +88,7 @@ class Detector(
                 arrayIdx += numElements
             }
 
-            // 只檢測鳥類 (class 14)
+            // 只检测鸟类 (class 14)
             if (maxConf > 0.3F && maxIdx == 14) {
                 val cx = array[c]
                 val cy = array[c + numElements]
@@ -99,10 +99,38 @@ class Detector(
                 val x2 = cx + (w / 2F)
                 val y2 = cy + (h / 2F)
 
+                // 扩大边界框，增加 5% 的 padding
+                val padding = 0.05F
+                val boxWidth = x2 - x1
+                val boxHeight = y2 - y1
+
+                var newX1 = x1 - boxWidth * padding
+                var newY1 = y1 - boxHeight * padding
+                var newX2 = x2 + boxWidth * padding
+                var newY2 = y2 + boxHeight * padding
+
+                // 确保边界框不超出图片边界
+                newX1 = maxOf(0F, newX1)
+                newY1 = maxOf(0F, newY1)
+                newX2 = minOf(1F, newX2)  // 假设图像归一化为 [0, 1]，如果是像素则调整为图像宽高
+                newY2 = minOf(1F, newY2)
+
+                // 计算正方形边界框
+                val boxSize = maxOf(newX2 - newX1, newY2 - newY1)
+                val centerX = (newX1 + newX2) / 2
+                val centerY = (newY1 + newY2) / 2
+                val halfSize = boxSize / 2
+
+                newX1 = maxOf(0F, centerX - halfSize)
+                newY1 = maxOf(0F, centerY - halfSize)
+                newX2 = minOf(1F, centerX + halfSize)
+                newY2 = minOf(1F, centerY + halfSize)
+
+                // 将结果添加到边界框列表
                 boundingBoxes.add(
                     BoundingBox(
-                        x1 = x1, y1 = y1, x2 = x2, y2 = y2,
-                        cx = cx, cy = cy, w = w, h = h,
+                        x1 = newX1, y1 = newY1, x2 = newX2, y2 = newY2,
+                        cx = centerX, cy = centerY, w = boxSize, h = boxSize,
                         cnf = maxConf, cls = maxIdx, clsName = "bird"
                     )
                 )
