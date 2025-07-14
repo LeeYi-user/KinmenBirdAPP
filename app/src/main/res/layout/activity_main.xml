@@ -6,24 +6,30 @@
     android:layout_height="match_parent"
     android:padding="16dp">
 
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="250dp"
-        android:layout_height="250dp"
-        android:scaleType="centerCrop"
-        android:contentDescription="Selected image" />
-
-    <Button
-        android:id="@+id/buttonSelect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="選擇圖片" />
-
+    <!-- 預測結果顯示區域 -->
     <TextView
         android:id="@+id/textViewResult"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="預測結果將顯示於此"
         android:textSize="18sp"
-        android:paddingTop="20dp" />
+        android:paddingTop="20dp"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- ViewPager 顯示結果 -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- 選擇圖片按鈕 -->
+    <Button
+        android:id="@+id/buttonSelect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="選擇圖片"
+        android:layout_marginBottom="20dp"/>
+
 </LinearLayout>
