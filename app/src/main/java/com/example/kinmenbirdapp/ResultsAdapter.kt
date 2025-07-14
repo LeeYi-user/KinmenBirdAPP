@@ -6,7 +6,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.kinmenbirdapp.R
 
 class ResultsAdapter(private val results: List<Pair<android.graphics.Bitmap, String>>) : RecyclerView.Adapter<ResultsAdapter.ViewHolder>() {
 
@@ -18,7 +17,7 @@ class ResultsAdapter(private val results: List<Pair<android.graphics.Bitmap, Str
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val result = results[position]
         holder.imageView.setImageBitmap(result.first)
-        holder.textView.text = "預測結果: ${result.second}"
+        holder.textView.text = result.second
     }
 
     override fun getItemCount(): Int {

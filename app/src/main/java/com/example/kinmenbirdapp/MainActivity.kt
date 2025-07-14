@@ -12,7 +12,6 @@ import androidx.viewpager2.widget.ViewPager2
 
 class MainActivity : AppCompatActivity(), Detector.DetectorListener {
 
-    private lateinit var imageView: ImageView
     private lateinit var textViewResult: TextView
     private lateinit var detector: Detector
     private lateinit var classifier: ImageClassifier
@@ -27,7 +26,6 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        imageView = findViewById(R.id.imageView)
         textViewResult = findViewById(R.id.textViewResult)
         val buttonSelect = findViewById<Button>(R.id.buttonSelect)
         viewPager = findViewById(R.id.viewPager)
@@ -56,7 +54,6 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
         if (requestCode == REQUEST_CODE_IMAGE_PICK && resultCode == Activity.RESULT_OK) {
             data?.data?.let { uri ->
                 val bitmap = uriToBitmap(uri)
-                imageView.setImageBitmap(bitmap)
 
                 val results = classifier.classify(bitmap)
 
@@ -64,7 +61,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
                     // 更新 ViewPager
                     resultsAdapter = ResultsAdapter(results)
                     viewPager.adapter = resultsAdapter
-                    textViewResult.text = "找到 ${results.size} 預測結果"
+                    textViewResult.text = "找到 ${results.size} 筆預測結果"
                 } else {
                     textViewResult.text = "未檢測到鳥類"
                 }
