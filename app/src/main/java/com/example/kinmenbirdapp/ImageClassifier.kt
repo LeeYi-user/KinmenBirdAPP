@@ -44,36 +44,39 @@ class ImageClassifier(context: Context, private val detector: Detector) {
         return labels
     }
 
-    fun classify(bitmap: Bitmap): Pair<Bitmap?, String> {
+    fun classify(bitmap: Bitmap): List<Pair<Bitmap, String>> {
         val boundingBoxes = detector.detect(bitmap)
+        val results = mutableListOf<Pair<Bitmap, String>>()
 
         if (boundingBoxes.isNotEmpty()) {
-            val box = boundingBoxes[0]
             val imageWidth = bitmap.width
             val imageHeight = bitmap.height
 
-            val left = (box.x1 * imageWidth).toInt().coerceIn(0, imageWidth - 1)
-            val top = (box.y1 * imageHeight).toInt().coerceIn(0, imageHeight - 1)
-            val right = (box.x2 * imageWidth).toInt().coerceIn(0, imageWidth)
-            val bottom = (box.y2 * imageHeight).toInt().coerceIn(0, imageHeight)
+            // 預測每個 bounding box
+            for (box in boundingBoxes) {
+                val left = (box.x1 * imageWidth).toInt().coerceIn(0, imageWidth - 1)
+                val top = (box.y1 * imageHeight).toInt().coerceIn(0, imageHeight - 1)
+                val right = (box.x2 * imageWidth).toInt().coerceIn(0, imageWidth)
+                val bottom = (box.y2 * imageHeight).toInt().coerceIn(0, imageHeight)
 
-            val cropWidth = (right - left).coerceAtLeast(1)
-            val cropHeight = (bottom - top).coerceAtLeast(1)
+                val cropWidth = (right - left).coerceAtLeast(1)
+                val cropHeight = (bottom - top).coerceAtLeast(1)
 
-            val croppedBitmap = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
+                val croppedBitmap = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
 
-            inputImage.load(croppedBitmap)
-            val processed = imageProcessor.process(inputImage)
+                inputImage.load(croppedBitmap)
+                val processed = imageProcessor.process(inputImage)
 
-            interpreter.run(processed.buffer, outputBuffer.buffer.rewind())
+                interpreter.run(processed.buffer, outputBuffer.buffer.rewind())
 
-            val confidences = outputBuffer.floatArray
-            val maxIndex = confidences.indices.maxByOrNull { confidences[it] } ?: -1
-            val result = labelMap[maxIndex] ?: "未知類別"
+                val confidences = outputBuffer.floatArray
+                val maxIndex = confidences.indices.maxByOrNull { confidences[it] } ?: -1
+                val result = labelMap[maxIndex] ?: "未知類別"
 
-            return Pair(croppedBitmap, result)
+                results.add(Pair(croppedBitmap, result))
+            }
         }
 
-        return Pair(null, "未檢測到鳥類")
+        return results
     }
 }

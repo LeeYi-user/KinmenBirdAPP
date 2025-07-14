@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.viewpager2.widget.ViewPager2
 
 class MainActivity : AppCompatActivity(), Detector.DetectorListener {
 
@@ -15,6 +16,8 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
     private lateinit var textViewResult: TextView
     private lateinit var detector: Detector
     private lateinit var classifier: ImageClassifier
+    private lateinit var viewPager: ViewPager2
+    private lateinit var resultsAdapter: ResultsAdapter
 
     companion object {
         private const val REQUEST_CODE_IMAGE_PICK = 1001
@@ -27,6 +30,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
         imageView = findViewById(R.id.imageView)
         textViewResult = findViewById(R.id.textViewResult)
         val buttonSelect = findViewById<Button>(R.id.buttonSelect)
+        viewPager = findViewById(R.id.viewPager)
 
         detector = Detector(
             context = this,
@@ -53,13 +57,17 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
             data?.data?.let { uri ->
                 val bitmap = uriToBitmap(uri)
                 imageView.setImageBitmap(bitmap)
-                val (croppedBitmap, resultName) = classifier.classify(bitmap)
-                if (croppedBitmap != null) {
-                    imageView.setImageBitmap(croppedBitmap)
+
+                val results = classifier.classify(bitmap)
+
+                if (results.isNotEmpty()) {
+                    // 更新 ViewPager
+                    resultsAdapter = ResultsAdapter(results)
+                    viewPager.adapter = resultsAdapter
+                    textViewResult.text = "找到 ${results.size} 預測結果"
                 } else {
-                    imageView.setImageBitmap(bitmap) // 如果沒偵測到鳥，就顯示原圖
+                    textViewResult.text = "未檢測到鳥類"
                 }
-                textViewResult.text = "預測結果：$resultName"
             }
         }
     }

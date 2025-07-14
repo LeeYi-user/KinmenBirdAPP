@@ -8,6 +8,8 @@ import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
+import kotlin.math.max
+import kotlin.math.min
 
 class Detector(
     private val context: Context,
@@ -65,14 +67,15 @@ class Detector(
 
         val bestBoxes = bestBox(output.floatArray)
 
-        return bestBoxes // 返回檢測結果
+        // 使用 Non-Maximum Suppression (NMS) 過濾接近的邊框
+        return nonMaximumSuppression(bestBoxes, 0.4F) // 設定 IoU 閾值為 0.4
     }
 
     private fun bestBox(array: FloatArray): List<BoundingBox> {
         val boundingBoxes = mutableListOf<BoundingBox>()
 
         for (c in 0 until numElements) {
-            var maxConf = 0.3F
+            var maxConf = 0.5F
             var maxIdx = -1
             var j = 4
             var arrayIdx = c + numElements * j
@@ -135,6 +138,43 @@ class Detector(
         }
 
         return boundingBoxes
+    }
+
+    // Non-Maximum Suppression (NMS) 用於過濾接近的邊界框
+    private fun nonMaximumSuppression(boundingBoxes: List<BoundingBox>, iouThreshold: Float): List<BoundingBox> {
+        val sortedBoxes = boundingBoxes.sortedByDescending { it.cnf }
+        val selectedBoxes = mutableListOf<BoundingBox>()
+
+        for (box in sortedBoxes) {
+            var keep = true
+            for (selectedBox in selectedBoxes) {
+                if (iou(selectedBox, box) > iouThreshold) {
+                    keep = false
+                    break
+                }
+            }
+            if (keep) {
+                selectedBoxes.add(box)
+            }
+        }
+
+        return selectedBoxes
+    }
+
+    // 计算两个边界框的 IOU (Intersection over Union)
+    private fun iou(box1: BoundingBox, box2: BoundingBox): Float {
+        val x1 = max(box1.x1, box2.x1)
+        val y1 = max(box1.y1, box2.y1)
+        val x2 = min(box1.x2, box2.x2)
+        val y2 = min(box1.y2, box2.y2)
+
+        val intersectionArea = max(0F, x2 - x1) * max(0F, y2 - y1)
+        val areaBox1 = (box1.x2 - box1.x1) * (box1.y2 - box1.y1)
+        val areaBox2 = (box2.x2 - box2.x1) * (box2.y2 - box2.y1)
+
+        val unionArea = areaBox1 + areaBox2 - intersectionArea
+
+        return if (unionArea == 0F) 0F else intersectionArea / unionArea
     }
 
     interface DetectorListener {
