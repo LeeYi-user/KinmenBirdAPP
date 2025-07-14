@@ -1,15 +1,16 @@
+package com.example.kinmenbirdapp
+
 import android.content.Context
 import android.graphics.Bitmap
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import org.tensorflow.lite.DataType
 import org.json.JSONObject
 
-class ImageClassifier(context: Context) {
+class ImageClassifier(context: Context, private val detector: Detector) {
 
     private val interpreter: Interpreter
     private val imageProcessor: ImageProcessor
@@ -18,12 +19,12 @@ class ImageClassifier(context: Context) {
     private val labelMap: Map<Int, String>
 
     init {
-        // 載入模型
+        // 載入 EfficientNetV2B0-InferenceOnly 模型
         val model = FileUtil.loadMappedFile(context, "EfficientNetV2B0-InferenceOnly.tflite")
         interpreter = Interpreter(model)
 
         imageProcessor = ImageProcessor.Builder()
-            .add(ResizeOp(224, 224, ResizeOp.ResizeMethod.BILINEAR))
+            .add(org.tensorflow.lite.support.image.ops.ResizeOp(224, 224, org.tensorflow.lite.support.image.ops.ResizeOp.ResizeMethod.BILINEAR))
             .build()
 
         inputImage = TensorImage(DataType.FLOAT32)
@@ -43,14 +44,36 @@ class ImageClassifier(context: Context) {
         return labels
     }
 
-    fun classify(bitmap: Bitmap): String {
-        inputImage.load(bitmap)
-        val processed = imageProcessor.process(inputImage)
+    fun classify(bitmap: Bitmap): Pair<Bitmap?, String> {
+        val boundingBoxes = detector.detect(bitmap)
 
-        interpreter.run(processed.buffer, outputBuffer.buffer.rewind())
+        if (boundingBoxes.isNotEmpty()) {
+            val box = boundingBoxes[0]
+            val imageWidth = bitmap.width
+            val imageHeight = bitmap.height
 
-        val confidences = outputBuffer.floatArray
-        val maxIndex = confidences.indices.maxByOrNull { confidences[it] } ?: -1
-        return labelMap[maxIndex] ?: "未知類別"
+            val left = (box.x1 * imageWidth).toInt().coerceIn(0, imageWidth - 1)
+            val top = (box.y1 * imageHeight).toInt().coerceIn(0, imageHeight - 1)
+            val right = (box.x2 * imageWidth).toInt().coerceIn(0, imageWidth)
+            val bottom = (box.y2 * imageHeight).toInt().coerceIn(0, imageHeight)
+
+            val cropWidth = (right - left).coerceAtLeast(1)
+            val cropHeight = (bottom - top).coerceAtLeast(1)
+
+            val croppedBitmap = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
+
+            inputImage.load(croppedBitmap)
+            val processed = imageProcessor.process(inputImage)
+
+            interpreter.run(processed.buffer, outputBuffer.buffer.rewind())
+
+            val confidences = outputBuffer.floatArray
+            val maxIndex = confidences.indices.maxByOrNull { confidences[it] } ?: -1
+            val result = labelMap[maxIndex] ?: "未知類別"
+
+            return Pair(croppedBitmap, result)
+        }
+
+        return Pair(null, "未檢測到鳥類")
     }
 }
