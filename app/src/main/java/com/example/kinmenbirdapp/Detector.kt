@@ -2,7 +2,6 @@ package com.example.kinmenbirdapp
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.os.SystemClock
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
@@ -18,14 +17,11 @@ class Detector(
 ) {
 
     private var interpreter: Interpreter
+    private val imageProcessor: ImageProcessor
     private var tensorWidth = 0
     private var tensorHeight = 0
     private var numChannel = 0
     private var numElements = 0
-
-    private val imageProcessor = ImageProcessor.Builder()
-        .add(org.tensorflow.lite.support.common.ops.NormalizeOp(0f, 255f))
-        .build()
 
     init {
         val model = FileUtil.loadMappedFile(context, modelPath)
@@ -43,6 +39,11 @@ class Detector(
             numChannel = outputShape[1]
             numElements = outputShape[2]
         }
+
+        imageProcessor = ImageProcessor.Builder()
+            .add(org.tensorflow.lite.support.image.ops.ResizeOp(tensorHeight, tensorWidth, org.tensorflow.lite.support.image.ops.ResizeOp.ResizeMethod.BILINEAR))
+            .add(org.tensorflow.lite.support.common.ops.NormalizeOp(0f, 255f))
+            .build()
     }
 
     fun close() {
@@ -54,12 +55,8 @@ class Detector(
             return emptyList()
         }
 
-        val inferenceTime = SystemClock.uptimeMillis()
-
-        val resizedBitmap = Bitmap.createScaledBitmap(frame, tensorWidth, tensorHeight, false)
-
         val tensorImage = TensorImage(DataType.FLOAT32)
-        tensorImage.load(resizedBitmap)
+        tensorImage.load(frame)
         val processedImage = imageProcessor.process(tensorImage)
         val imageBuffer = processedImage.buffer
 
