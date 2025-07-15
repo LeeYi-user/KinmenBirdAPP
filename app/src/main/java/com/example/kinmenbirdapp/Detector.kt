@@ -68,7 +68,7 @@ class Detector(
         val bestBoxes = bestBox(output.floatArray)
 
         // 使用 Non-Maximum Suppression (NMS) 過濾接近的邊框
-        return nonMaximumSuppression(bestBoxes, 0.4F) // 設定 IoU 閾值為 0.4
+        return nonMaximumSuppression(bestBoxes, 0.5F) // 設定 IoU 閾值為 0.5
     }
 
     private fun bestBox(array: FloatArray): List<BoundingBox> {
